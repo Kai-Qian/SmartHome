@@ -132,8 +132,10 @@ public class AudioRecordActivity extends AppCompatActivity {
                 // Write a message to the database
                 FirebaseDatabase database = FirebaseDatabase.getInstance();
                 DatabaseReference myRef = database.getReference("1493192503547").child("1");
-
-                myRef.child("audio").setValue(audioEncode(list.get(0).getAudioFile()));
+                if(list.isEmpty()) return;
+                else {
+                    myRef.child("audio").setValue(audioEncode(list.get(0).getAudioFile()));
+                }
 
             }
         });
