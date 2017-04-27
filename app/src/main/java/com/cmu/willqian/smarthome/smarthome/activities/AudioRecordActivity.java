@@ -9,6 +9,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Base64;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -18,6 +19,10 @@ import android.widget.Toast;
 import com.cmu.willqian.smarthome.R;
 import com.cmu.willqian.smarthome.smarthome.adapter.AudioAdapter;
 import com.cmu.willqian.smarthome.smarthome.models.AudioFile;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
+import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -93,7 +98,6 @@ public class AudioRecordActivity extends AppCompatActivity {
         View emptyView = findViewById(R.id.empty);
         listView.setEmptyView(emptyView);
     }
-    //播放录音文件
     private void playAudio(File file) {
         Intent intent = new Intent();
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -102,21 +106,18 @@ public class AudioRecordActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    //点击按钮录音
     private void initButton() {
         mStartBtn = (Button) findViewById(R.id.AudioStartBtn);
         mStopBtn = (Button) findViewById(R.id.AudioStopBtn);
-        //开始按钮事件监听
+        mUploadBtn =(Button) findViewById(R.id.AudioUploadBtn);
         mStartBtn.setOnClickListener(new Button.OnClickListener() {
             @Override
             public void onClick(View arg0) {
-                //按钮状态,false让按钮失效，
                 mStartBtn.setEnabled(false);
                 mStopBtn.setEnabled(true);
                 mHandler.sendEmptyMessage(MSG_RECORD);
             }
         });
-        //停止按钮事件监听
         mStopBtn.setOnClickListener(new Button.OnClickListener() {
             @Override
             public void onClick(View arg0) {
@@ -125,7 +126,17 @@ public class AudioRecordActivity extends AppCompatActivity {
                 mHandler.sendEmptyMessage(MSG_STOP);
             }
         });
-        //初始的按钮状态
+        mUploadBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Write a message to the database
+                FirebaseDatabase database = FirebaseDatabase.getInstance();
+                DatabaseReference myRef = database.getReference("1493192503547").child("1");
+
+                myRef.child("audio").setValue(audioEncode(list.get(0).getAudioFile()));
+
+            }
+        });
         mStartBtn.setEnabled(true);
         mStopBtn.setEnabled(false);
     }
@@ -146,32 +157,26 @@ public class AudioRecordActivity extends AppCompatActivity {
         };
     };
 
-    //开始录音
     private void startRecord() {
         try {
             mStartBtn.setEnabled(false);
             mStopBtn.setEnabled(true);
-            //实例化MediaRecorder对象
             mediaRecorder = new MediaRecorder();
             mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);// 设置麦克风
-            //设置编码格式
             mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.DEFAULT);
-            //设置音频文件的编码
             mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
-            //设置输出文件的路径
             try {
                 mAudioFile = File.createTempFile(strTempFile, ".amr", mAudioPath);
             } catch (Exception e) {
                 e.printStackTrace();
             }
             mediaRecorder.setOutputFile(mAudioFile.getAbsolutePath());
-            mediaRecorder.prepare();//准备
-            mediaRecorder.start();//开始
+            mediaRecorder.prepare();
+            mediaRecorder.start();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    //停止录音
     private void stopRecord() {
         if (mAudioFile != null) {
             mStartBtn.setEnabled(true);
@@ -217,5 +222,18 @@ public class AudioRecordActivity extends AppCompatActivity {
         t = sy2.format(date);
         return t;
     }
+
+    private String audioEncode(File file) {
+        byte[] bytes = new byte[0];
+        try {
+            bytes = FileUtils.readFileToByteArray(file);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        String encoded = Base64.encodeToString(bytes, 0);
+        return encoded;
+    }
+
 
 }
